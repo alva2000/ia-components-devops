@@ -77,19 +77,14 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: snyk test --file=requirements-docker.txt --package-manager=pip --severity-threshold=high
 
-  docker-deploy:
-    name: Docker Build y Deploy
+  docker-scan:
+    name: Docker Build y Trivy
     runs-on: ubuntu-latest
-    needs: [agente-python, seguridad-dependencias]
+    needs: agente-python
 
     steps:
       - name: Descargar código
         uses: actions/checkout@v4
-
-      - name: Mostrar versiones
-        run: |
-          docker --version
-          docker compose version
 
       - name: Validar Docker Compose
         run: docker compose config
@@ -106,6 +101,18 @@ jobs:
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
           ignore-unfixed: true
+
+  docker-deploy:
+    name: Docker Deploy simulado
+    runs-on: ubuntu-latest
+    needs: [agente-python, seguridad-dependencias, docker-scan]
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Construir imagen Docker para despliegue verificado
+        run: docker compose build
 
       - name: Levantar entorno simulado
         run: docker compose up -d --no-build
