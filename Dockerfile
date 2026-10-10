@@ -13,9 +13,8 @@ RUN python -m pip install --upgrade pip
 # PyTorch CPU: no necesitamos CUDA/GPU
 RUN pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cpu \
-    torch
-
-RUN pip install --no-cache-dir -r requirements-docker.txt \
+    torch \
+    && pip install --no-cache-dir -r requirements-docker.txt \
     && pip install --no-cache-dir --upgrade \
         'setuptools>=78.1.1' 'wheel>=0.46.2' \
         'urllib3>=2.8.0' 'msgpack>=1.2.1' 'jaraco.context>=6.1.0' \
