@@ -103,7 +103,7 @@ jobs:
           ignore-unfixed: true
 
   smoke-compose:
-    name: Smoke test Compose (entorno aislado)
+    name: Deploy simulado de evaluación (aislado)
     runs-on: ubuntu-latest
     needs: agente-python
     steps:
@@ -116,12 +116,22 @@ jobs:
       - name: Construir e iniciar entorno aislado de prueba
         run: docker compose up -d --build
 
+      - name: Registrar evidencia de despliegue simulado
+        run: |
+          mkdir -p evidencias
+          printf 'Commit: %s\nEjecucion: %s\nEntorno: GitHub Actions Ubuntu (efimero, sin exposicion publica)\n' "$GITHUB_SHA" "$GITHUB_RUN_ID" > evidencias/despliegue.txt
+          docker compose ps >> evidencias/despliegue.txt
+
       - name: Esperar healthcheck del servicio
         shell: bash
         run: |
           for i in {1..18}; do
             if curl --fail --silent http://localhost:8501/_stcore/health >/dev/null; then
-              echo "Smoke test exitoso"
+              echo "Despliegue simulado saludable"
+              echo "Resultado: healthcheck OK" >> evidencias/despliegue.txt
+              echo "### Despliegue simulado de evaluación ✅" >> "$GITHUB_STEP_SUMMARY"
+              echo "Docker Compose iniciado, endpoint de salud HTTP 200." >> "$GITHUB_STEP_SUMMARY"
+              echo "**No es un despliegue de producción:** Snyk y Trivy siguen bloqueando el despliegue protegido." >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
             sleep 10
@@ -129,6 +139,14 @@ jobs:
           docker compose ps
           docker compose logs --tail=150
           exit 1
+
+      - name: Adjuntar evidencia del entorno efímero
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidencia-despliegue-simulado
+          path: evidencias/
+          if-no-files-found: warn
 
       - name: Detener contenedores de prueba
         if: always()
