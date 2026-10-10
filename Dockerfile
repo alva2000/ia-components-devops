@@ -1,29 +1,30 @@
-FROM python:3.11-slim AS builder
-
-ENV PIP_NO_CACHE_DIR=1
+# Construir en Debian evita copiar metadatos antiguos de las capas python:slim.
+FROM debian:bookworm-slim AS builder
+ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-venv python3-pip ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
-RUN python -m venv /opt/venv
+RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 COPY requirements-docker.txt .
-RUN python -m pip install --upgrade pip setuptools wheel \
-    && python -m pip install -r requirements-docker.txt \
-    && python -m pip install --upgrade \
-      'setuptools>=78.1.1' 'wheel>=0.46.2' 'urllib3>=2.8.0' \
-      'msgpack>=1.2.1' 'jaraco.context>=6.1.0' \
-    && python -m pip check
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements-docker.txt \
+    && pip install --no-cache-dir --upgrade \
+       'urllib3>=2.8.0' 'msgpack>=1.2.1' \
+    && pip check \
+    && python -c "import streamlit, fastembed, faiss"
 
-FROM python:3.11-slim
-ENV PYTHONDONTWRITEBYTECODE=1 \
+FROM debian:bookworm-slim
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
     PATH="/opt/venv/bin:$PATH"
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
-# El runtime utiliza exclusivamente /opt/venv. Los site-packages
-# globales del Python base no son necesarios y contienen paquetes obsoletos.
-# Eliminarlos del filesystem final (sin excluirlos del escaneo Trivy).
-RUN rm -rf /usr/local/lib/python3.11/site-packages/* \
-    && /opt/venv/bin/python -m pip check
 COPY . .
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
