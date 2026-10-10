@@ -107,3 +107,11 @@ Las actualizaciones correctivas agregadas al Dockerfile apuntan a `setuptools>=7
 El job **Deploy simulado de evaluación (aislado)** inicia el servicio en un runner efímero de GitHub Actions, verifica `/_stcore/health` y adjunta el artefacto `evidencia-despliegue-simulado` con commit, ejecución y estado de Docker Compose. El entorno se destruye al acabar el job; **no está públicamente accesible, no constituye alojamiento cloud permanente, ni supone autorización para producción**.
 
 Este job se ejecuta después de PyTest aun si los escaneos Snyk/Trivy detectan problemas, solo para obtener evidencia funcional en un entorno desechable. El job **Docker Deploy simulado**, destinado al despliegue protegido, sigue requiriendo que Snyk y Trivy estén aprobados. En la defensa de EP2 se deben presentar ambos resultados, incluidos los hallazgos abiertos.
+
+
+### Remediación de dependencias (iteración siguiente)
+Se reemplazó `sentence-transformers` por `fastembed` (inferencia ONNX) conservando la arquitectura FAISS y la API `RAG.construir_indice/buscar`. El modelo de embeddings continúa siendo `all-MiniLM-L6-v2`, pero el motor de inferencia ya no necesita PyTorch. Se incorporaron pruebas unitarias de búsqueda RAG con embeddings simulados.
+
+El Dockerfile separa la instalación en un **builder** y copia al contenedor final un entorno virtual con paquetes actualizados para evitar conservar capas de instalación intermedias. Es una remediación propuesta y **requiere validar los escaneos y el comportamiento real del RAG** antes de integrarse. El motor ONNX descarga su modelo la primera vez que se usa; comprobar rendimiento, conectividad y calidad de resultados con el catálogo real.
+
+**No fusionar este PR si GitHub Actions no valida ambas comprobaciones de seguridad y la funcionalidad del microservicio.**
