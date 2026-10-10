@@ -19,6 +19,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
+# La imagen Python de base incluye metadatos antiguos fuera del venv.
+# Actualizar también sus herramientas y librerías globales antes de copiar la app.
+RUN /usr/local/bin/python -m pip install --no-cache-dir --upgrade \
+    'setuptools>=78.1.1' 'wheel>=0.46.2' \
+    'urllib3>=2.8.0' 'msgpack>=1.2.1' 'jaraco.context>=6.1.0'
 COPY . .
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
