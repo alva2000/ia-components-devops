@@ -1,7 +1,7 @@
 # Construir en Debian evita copiar metadatos antiguos de las capas python:slim.
-FROM debian:bookworm-slim AS builder
+FROM debian:trixie-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive PIP_NO_CACHE_DIR=1
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     python3 python3-venv python3-pip ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
@@ -13,14 +13,15 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --upgrade \
        'urllib3>=2.8.0' 'msgpack>=1.2.1' \
     && pip check \
+    && python -m pip uninstall -y setuptools wheel \
     && python -c "import streamlit, fastembed, faiss"
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/opt/venv/bin:$PATH"
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     python3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
