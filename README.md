@@ -101,3 +101,9 @@ Cada push y Pull Request en `main`/`develop` registra su commit, actor, resultad
 El job `Smoke test Compose (entorno aislado)` construye y levanta la aplicación con Docker Compose, espera el endpoint de salud y destruye el entorno de prueba. Se ejecuta independientemente de las comprobaciones Snyk/Trivy para demostrar orquestación y disponibilidad, **pero no equivale a una autorización de despliegue**. El job `Docker Deploy simulado` permanece bloqueado mientras Snyk o Trivy fallen. Esta separación permite mostrar dos aspectos de la rúbrica sin reducir la seguridad.
 
 Las actualizaciones correctivas agregadas al Dockerfile apuntan a `setuptools>=78.1.1`, `wheel>=0.46.2`, `urllib3>=2.8.0`, `msgpack>=1.2.1` y `jaraco.context>=6.1.0`. Su efecto debe verificarse en el siguiente escaneo de Trivy, no asumirse a priori.
+
+
+### Entrega simulada verificable para IE4
+El job **Deploy simulado de evaluación (aislado)** inicia el servicio en un runner efímero de GitHub Actions, verifica `/_stcore/health` y adjunta el artefacto `evidencia-despliegue-simulado` con commit, ejecución y estado de Docker Compose. El entorno se destruye al acabar el job; **no está públicamente accesible, no constituye alojamiento cloud permanente, ni supone autorización para producción**.
+
+Este job se ejecuta después de PyTest aun si los escaneos Snyk/Trivy detectan problemas, solo para obtener evidencia funcional en un entorno desechable. El job **Docker Deploy simulado**, destinado al despliegue protegido, sigue requiriendo que Snyk y Trivy estén aprobados. En la defensa de EP2 se deben presentar ambos resultados, incluidos los hallazgos abiertos.
