@@ -62,3 +62,36 @@ Al principio me costó entender GitFlow, sobre todo diferenciar main de develop 
 
 [Álvaro Eyzaguirre]
 Durante el desarrollo del proyecto pude aprender y aplicar GitFlow para organizar el trabajo con mi compañero. Lo que más me gustó fue la forma en que se puede revisar y aprobar el código de otra persona antes de integrarlo, ya que permite tener un mayor control sobre los cambios realizados. Esta experiencia me ayudó a entender mejor cómo GitFlow facilita el trabajo colaborativo y la integración del código entre los integrantes del equipo.
+
+
+## EP2 — Calidad, seguridad y despliegue con contenedores
+
+### Proceso automatizado
+- **CI:** `.github/workflows/ci.yml` instala dependencias y ejecuta `python -m pytest tests/ -v`.
+- **Análisis Snyk:** `seguridad-dependencias` inspecciona `requirements-docker.txt`; las vulnerabilidades **HIGH/CRITICAL** producen fallo. Este job depende de las pruebas.
+- **Imagen Docker:** después de PyTest y Snyk, el pipeline construye `gmcomponents-ev2:latest`. **Trivy** bloquea el despliegue ante hallazgos HIGH/CRITICAL corregibles en paquetes o sistema operativo.
+- **Entrega simulada:** solo después de pasar esos controles se ejecuta `docker compose up -d --no-build`, comprobando el endpoint `/_stcore/health`.
+- **Orquestación:** `docker-compose.yml` gestiona la aplicación Streamlit, reinicio, healthcheck y límites de **1 CPU / 2 GiB RAM**. El Dockerfile usa un usuario sin privilegios.
+- **Dependabot:** `.github/dependabot.yml` revisa semanalmente dependencias pip, GitHub Actions y Docker. Crea PRs que deben revisarse; no actualiza ni bloquea automáticamente por sí solo.
+
+### Configuración imprescindible (una vez)
+1. Crear una cuenta/proyecto en [Snyk](https://snyk.io/) y obtener un token API personal.
+2. En este repositorio: **Settings → Secrets and variables → Actions → New repository secret**; nombre exacto `SNYK_TOKEN`, valor el token. **Nunca publicarlo en archivos ni mensajes.**
+3. Abrir un Pull Request hacia `main` o `develop`. Revisar que los jobs `Pruebas automatizadas`, `Snyk - dependencias` y `Docker Build y Deploy` pasen.
+4. Si Snyk/Trivy encuentran vulnerabilidades, resolverlas actualizando la dependencia o justificando y gestionando una excepción revisada; **no omitir el escaneo ni poner `continue-on-error`**.
+
+### Pruebas locales
+```bash
+python -m pip install -r requirements.txt
+python -m pytest tests/ -v
+docker compose config
+docker compose build
+docker compose up -d
+docker compose ps
+docker compose down
+```
+
+### Trazabilidad y evidencia para la rúbrica
+Cada push y Pull Request en `main`/`develop` registra su commit, actor, resultado y logs en **Actions → CI-CD**. El despliegue simulado ocurre solamente si terminan satisfactoriamente las pruebas y escaneos. Adjuntar capturas de los jobs, el healthcheck y un ejemplo de bloqueo ante fallo en el informe o en `docs/` si el docente lo pide.
+
+**Nota:** esta documentación describe la configuración propuesta; su ejecución integral debe verificarse después de instalar `SNYK_TOKEN`. No constituye evidencia de un run exitoso por sí sola.
