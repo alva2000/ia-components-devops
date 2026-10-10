@@ -69,8 +69,8 @@ Durante el desarrollo del proyecto pude aprender y aplicar GitFlow para organiza
 ### Proceso automatizado
 - **CI:** `.github/workflows/ci.yml` instala dependencias y ejecuta `python -m pytest tests/ -v`.
 - **Análisis Snyk:** `seguridad-dependencias` inspecciona `requirements-docker.txt`; las vulnerabilidades **HIGH/CRITICAL** producen fallo. Este job depende de las pruebas.
-- **Imagen Docker:** después de PyTest y Snyk, el pipeline construye `gmcomponents-ev2:latest`. **Trivy** bloquea el despliegue ante hallazgos HIGH/CRITICAL corregibles en paquetes o sistema operativo.
-- **Entrega simulada:** solo después de pasar esos controles se ejecuta `docker compose up -d --no-build`, comprobando el endpoint `/_stcore/health`.
+- **Imagen Docker:** después de PyTest, el job independiente **Docker Build y Trivy** construye `gmcomponents-ev2:latest` y busca vulnerabilidades HIGH/CRITICAL corregibles, incluso si Snyk detecta problemas. El despliegue requiere que terminen exitosamente tanto Snyk como Trivy.
+- **Entrega simulada:** solo después de pasar ambos escaneos se reconstruye la imagen en el job de despliegue y se ejecuta `docker compose up -d --no-build`, comprobando el endpoint `/_stcore/health`.
 - **Orquestación:** `docker-compose.yml` gestiona la aplicación Streamlit, reinicio, healthcheck y límites de **1 CPU / 2 GiB RAM**. El Dockerfile usa un usuario sin privilegios.
 - **Dependabot:** `.github/dependabot.yml` revisa semanalmente dependencias pip, GitHub Actions y Docker. Crea PRs que deben revisarse; no actualiza ni bloquea automáticamente por sí solo.
 
