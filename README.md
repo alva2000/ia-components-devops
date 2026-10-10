@@ -95,3 +95,9 @@ docker compose down
 Cada push y Pull Request en `main`/`develop` registra su commit, actor, resultado y logs en **Actions → CI-CD**. El despliegue simulado ocurre solamente si terminan satisfactoriamente las pruebas y escaneos. Adjuntar capturas de los jobs, el healthcheck y un ejemplo de bloqueo ante fallo en el informe o en `docs/` si el docente lo pide.
 
 **Nota:** esta documentación describe la configuración propuesta; su ejecución integral debe verificarse después de instalar `SNYK_TOKEN`. No constituye evidencia de un run exitoso por sí sola.
+
+
+### Evidencia adicional de IE4 e IE5 — entorno aislado
+El job `Smoke test Compose (entorno aislado)` construye y levanta la aplicación con Docker Compose, espera el endpoint de salud y destruye el entorno de prueba. Se ejecuta independientemente de las comprobaciones Snyk/Trivy para demostrar orquestación y disponibilidad, **pero no equivale a una autorización de despliegue**. El job `Docker Deploy simulado` permanece bloqueado mientras Snyk o Trivy fallen. Esta separación permite mostrar dos aspectos de la rúbrica sin reducir la seguridad.
+
+Las actualizaciones correctivas agregadas al Dockerfile apuntan a `setuptools>=78.1.1`, `wheel>=0.46.2`, `urllib3>=2.8.0`, `msgpack>=1.2.1` y `jaraco.context>=6.1.0`. Su efecto debe verificarse en el siguiente escaneo de Trivy, no asumirse a priori.
