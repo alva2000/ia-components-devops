@@ -542,7 +542,7 @@ elif "Arquitectura" in pagina:
 - Groq. (2024). *Groq API Documentation*. https://console.groq.com/docs
 - LangChain. (2024). *LangChain Documentation*. https://docs.langchain.com
 - Meta AI. (2024). *Llama 3: Open Foundation and Fine-Tuned Chat Models*. https://ai.meta.com/llama
-- Hugging Face. (2024). *Sentence Transformers Documentation*. https://www.sbert.net
+- Qdrant. *FastEmbed Documentation*. https://qdrant.github.io/fastembed/
 - Facebook Research. (2024). *FAISS: A Library for Efficient Similarity Search*. https://faiss.ai
 - SerpApi. (2024). *Google Search API Documentation*. https://serpapi.com/docs
 """)
