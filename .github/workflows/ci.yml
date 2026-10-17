@@ -104,7 +104,7 @@ jobs:
             echo "=== Inventario de archivos de distribución ==="
             find /usr /opt/venv -type d \( -iname "*msgpack*dist-info" -o -iname "*urllib3*dist-info" -o -iname "*setuptools*dist-info" -o -iname "*wheel*dist-info" \) -print 2>/dev/null || true
             echo "=== Dependencias del SO ==="
-            dpkg-query -W -f="${Package}=${Version}\\n" perl-base python3-pip python3-setuptools 2>/dev/null || true
+            dpkg-query -W perl-base python3-pip python3-setuptools 2>/dev/null || true
           '
 
       - name: Escanear imagen Docker con Trivy
