@@ -196,7 +196,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔧 Herramientas activas")
-    st.markdown("- ✅ RAG (FAISS + SentenceTransformers)")
+    st.markdown("- ✅ RAG (FAISS + FastEmbed (ONNX))")
     st.markdown("- ✅ LLM (Groq llama-3.3-70b)")
     st.markdown("- ✅ Web Search (SerpAPI)")
     st.markdown("- ✅ Memoria corto/largo plazo")
