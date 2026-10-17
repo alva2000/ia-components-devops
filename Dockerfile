@@ -13,8 +13,8 @@ RUN pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir --upgrade \
        'urllib3>=2.8.0' 'msgpack>=1.2.1' \
     && pip check \
-    && python -m pip uninstall -y setuptools wheel \
-    && python -c "import streamlit, fastembed, faiss"
+    && python -m pip uninstall -y setuptools wheel pip \
+    && python -c "import streamlit, fastembed, faiss, msgpack, urllib3; print('Runtime Python validado')"
 
 FROM debian:trixie-slim AS prepared-runtime
 ENV DEBIAN_FRONTEND=noninteractive \
