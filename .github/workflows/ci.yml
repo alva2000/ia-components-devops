@@ -100,7 +100,12 @@ jobs:
             echo "=== Python activo ==="
             python --version
             echo "=== Paquetes activos de la app ==="
-            python -m pip list --format=freeze | grep -Ei "^(msgpack|urllib3|setuptools|wheel|fastembed)=" || true
+            python -c "from importlib.metadata import version; print('fastembed=' + version('fastembed')); print('msgpack=' + version('msgpack')); print('urllib3=' + version('urllib3'))"
+            if python -c "import pip" 2>/dev/null; then
+              echo "ERROR: pip sigue instalado en la imagen de ejecución"
+              exit 1
+            fi
+            echo "pip no está instalado en runtime (correcto)"
             echo "=== Inventario de archivos de distribución ==="
             find /usr /opt/venv -type d \( -iname "*msgpack*dist-info" -o -iname "*urllib3*dist-info" -o -iname "*setuptools*dist-info" -o -iname "*wheel*dist-info" \) -print 2>/dev/null || true
             echo "=== Dependencias del SO ==="
@@ -116,6 +121,7 @@ jobs:
           severity: 'HIGH,CRITICAL'
           exit-code: '1'
           ignore-unfixed: true
+          version: v0.76.0
 
   smoke-compose:
     name: Deploy simulado de evaluación (aislado)
