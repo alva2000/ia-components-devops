@@ -92,6 +92,21 @@ jobs:
       - name: Construir imagen Docker
         run: docker build -t gmcomponents-ev2:latest .
 
+      - name: Auditar paquetes del contenedor final
+        shell: bash
+        run: |
+          docker run --rm --entrypoint /bin/sh gmcomponents-ev2:latest -c '
+            set -eu
+            echo "=== Python activo ==="
+            python --version
+            echo "=== Paquetes activos de la app ==="
+            python -m pip list --format=freeze | grep -Ei "^(msgpack|urllib3|setuptools|wheel|fastembed)=" || true
+            echo "=== Inventario de archivos de distribución ==="
+            find /usr /opt/venv -type d \( -iname "*msgpack*dist-info" -o -iname "*urllib3*dist-info" -o -iname "*setuptools*dist-info" -o -iname "*wheel*dist-info" \) -print 2>/dev/null || true
+            echo "=== Dependencias del SO ==="
+            dpkg-query -W -f="${Package}=${Version}\\n" perl-base python3-pip python3-setuptools 2>/dev/null || true
+          '
+
       - name: Escanear imagen Docker con Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
