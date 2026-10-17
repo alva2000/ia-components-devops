@@ -64,54 +64,45 @@ Al principio me costó entender GitFlow, sobre todo diferenciar main de develop 
 Durante el desarrollo del proyecto pude aprender y aplicar GitFlow para organizar el trabajo con mi compañero. Lo que más me gustó fue la forma en que se puede revisar y aprobar el código de otra persona antes de integrarlo, ya que permite tener un mayor control sobre los cambios realizados. Esta experiencia me ayudó a entender mejor cómo GitFlow facilita el trabajo colaborativo y la integración del código entre los integrantes del equipo.
 
 
-## EP2 — Calidad, seguridad y despliegue con contenedores
+## EP2 — Integración continua, pruebas y seguridad Docker
 
-### Proceso automatizado
-- **CI:** `.github/workflows/ci.yml` instala dependencias y ejecuta `python -m pytest tests/ -v`.
-- **Análisis Snyk:** `seguridad-dependencias` inspecciona `requirements-docker.txt`; las vulnerabilidades **HIGH/CRITICAL** producen fallo. Este job depende de las pruebas.
-- **Imagen Docker:** después de PyTest, el job independiente **Docker Build y Trivy** construye `gmcomponents-ev2:latest` y busca vulnerabilidades HIGH/CRITICAL corregibles, incluso si Snyk detecta problemas. El despliegue requiere que terminen exitosamente tanto Snyk como Trivy.
-- **Entrega simulada:** solo después de pasar ambos escaneos se reconstruye la imagen en el job de despliegue y se ejecuta `docker compose up -d --no-build`, comprobando el endpoint `/_stcore/health`.
-- **Orquestación:** `docker-compose.yml` gestiona la aplicación Streamlit, reinicio, healthcheck y límites de **1 CPU / 2 GiB RAM**. El Dockerfile usa un usuario sin privilegios.
-- **Dependabot:** `.github/dependabot.yml` revisa semanalmente dependencias pip, GitHub Actions y Docker. Crea PRs que deben revisarse; no actualiza ni bloquea automáticamente por sí solo.
+### Pipeline automatizado
 
-### Configuración imprescindible (una vez)
-1. Crear una cuenta/proyecto en [Snyk](https://snyk.io/) y obtener un token API personal.
-2. En este repositorio: **Settings → Secrets and variables → Actions → New repository secret**; nombre exacto `SNYK_TOKEN`, valor el token. **Nunca publicarlo en archivos ni mensajes.**
-3. Abrir un Pull Request hacia `main` o `develop`. Revisar que los jobs `Pruebas automatizadas`, `Snyk - dependencias` y `Docker Build y Deploy` pasen.
-4. Si Snyk/Trivy encuentran vulnerabilidades, resolverlas actualizando la dependencia o justificando y gestionando una excepción revisada; **no omitir el escaneo ni poner `continue-on-error`**.
+El workflow `.github/workflows/ci.yml` realiza tres trabajos:
 
-### Pruebas locales
+1. **Pruebas automatizadas:** instala las dependencias y ejecuta `python -m pytest tests/ -v`.
+2. **Snyk — dependencias:** analiza `requirements-docker.txt` y detiene el pipeline cuando identifica vulnerabilidades altas o críticas.
+3. **Docker Build y Trivy:** valida Docker Compose, construye la imagen `gmcomponents-ev2:latest`, audita las dependencias presentes en el contenedor final y realiza un escaneo Trivy de vulnerabilidades HIGH/CRITICAL corregibles en bibliotecas y sistema operativo. El escaneo falla si detecta problemas.
+
+**Los trabajos de despliegue simulado fueron eliminados.** El pipeline actual **no despliega ni publica la aplicación**; comprueba calidad, construcción y seguridad del contenedor. Una ejecución verde no equivale a disponer de un servidor en producción.
+
+### Configuración de Snyk
+
+En **Settings → Secrets and variables → Actions**, configurar el secreto `SNYK_TOKEN` para ejecutar el análisis. Nunca añadir credenciales al repositorio.
+
+### Levantar la aplicación localmente
+
+El archivo `docker-compose.yml` permanece disponible para que el profesor o cualquier integrante del equipo compruebe el funcionamiento en su equipo:
+
 ```bash
-python -m pip install -r requirements.txt
-python -m pytest tests/ -v
 docker compose config
 docker compose build
 docker compose up -d
 docker compose ps
+curl --fail http://localhost:8501/_stcore/health
 docker compose down
 ```
 
-### Trazabilidad y evidencia para la rúbrica
-Cada push y Pull Request en `main`/`develop` registra su commit, actor, resultado y logs en **Actions → CI-CD**. El despliegue simulado ocurre solamente si terminan satisfactoriamente las pruebas y escaneos. Adjuntar capturas de los jobs, el healthcheck y un ejemplo de bloqueo ante fallo en el informe o en `docs/` si el docente lo pide.
+Mientras el servicio esté en ejecución, la interfaz se encuentra en `http://localhost:8501`. Las funciones que acceden a Groq o SerpAPI necesitan claves válidas, configuradas mediante variables de entorno, y el modelo ONNX puede requerir conectividad en su primera descarga. El endpoint de salud no sustituye las pruebas funcionales de estas integraciones.
 
-**Nota:** esta documentación describe la configuración propuesta; su ejecución integral debe verificarse después de instalar `SNYK_TOKEN`. No constituye evidencia de un run exitoso por sí sola.
+### Medidas de seguridad y mantenimiento
 
+- `fastembed` (ONNX) sustituye la pila PyTorch/`transformers` en la imagen de ejecución; el índice semántico sigue usando FAISS.
+- El Dockerfile usa compilación en varias etapas y conserva solo las dependencias necesarias en la imagen final; las herramientas `pip`, `setuptools` y `wheel` no se requieren en runtime.
+- El contenedor se ejecuta sin privilegios de root y mantiene un healthcheck.
+- `.github/dependabot.yml` propone actualizaciones semanales de dependencias y acciones. Sus Pull Requests deben revisarse.
+- Ninguna vulnerabilidad debe ocultarse desactivando los escáneres o ignorando fallos.
 
-### Evidencia adicional de IE4 e IE5 — entorno aislado
-El job `Smoke test Compose (entorno aislado)` construye y levanta la aplicación con Docker Compose, espera el endpoint de salud y destruye el entorno de prueba. Se ejecuta independientemente de las comprobaciones Snyk/Trivy para demostrar orquestación y disponibilidad, **pero no equivale a una autorización de despliegue**. El job `Docker Deploy simulado` permanece bloqueado mientras Snyk o Trivy fallen. Esta separación permite mostrar dos aspectos de la rúbrica sin reducir la seguridad.
+### Evidencia para la evaluación
 
-Las actualizaciones correctivas agregadas al Dockerfile apuntan a `setuptools>=78.1.1`, `wheel>=0.46.2`, `urllib3>=2.8.0`, `msgpack>=1.2.1` y `jaraco.context>=6.1.0`. Su efecto debe verificarse en el siguiente escaneo de Trivy, no asumirse a priori.
-
-
-### Entrega simulada verificable para IE4
-El job **Deploy simulado de evaluación (aislado)** inicia el servicio en un runner efímero de GitHub Actions, verifica `/_stcore/health` y adjunta el artefacto `evidencia-despliegue-simulado` con commit, ejecución y estado de Docker Compose. El entorno se destruye al acabar el job; **no está públicamente accesible, no constituye alojamiento cloud permanente, ni supone autorización para producción**.
-
-Este job se ejecuta después de PyTest aun si los escaneos Snyk/Trivy detectan problemas, solo para obtener evidencia funcional en un entorno desechable. El job **Docker Deploy simulado**, destinado al despliegue protegido, sigue requiriendo que Snyk y Trivy estén aprobados. En la defensa de EP2 se deben presentar ambos resultados, incluidos los hallazgos abiertos.
-
-
-### Remediación de dependencias (iteración siguiente)
-Se reemplazó `sentence-transformers` por `fastembed` (inferencia ONNX) conservando la arquitectura FAISS y la API `RAG.construir_indice/buscar`. El modelo de embeddings continúa siendo `all-MiniLM-L6-v2`, pero el motor de inferencia ya no necesita PyTorch. Se incorporaron pruebas unitarias de búsqueda RAG con embeddings simulados.
-
-El Dockerfile separa la instalación en un **builder** y copia al contenedor final un entorno virtual con paquetes actualizados para evitar conservar capas de instalación intermedias. Es una remediación propuesta y **requiere validar los escaneos y el comportamiento real del RAG** antes de integrarse. El motor ONNX descarga su modelo la primera vez que se usa; comprobar rendimiento, conectividad y calidad de resultados con el catálogo real.
-
-**No fusionar este PR si GitHub Actions no valida ambas comprobaciones de seguridad y la funcionalidad del microservicio.**
+En **Actions → CI - Calidad y Seguridad** se pueden revisar las pruebas, el escaneo Snyk y el análisis Trivy de cada commit. Para demostrar la ejecución del servicio hay que iniciar la aplicación localmente con Docker Compose; el workflow ya no guarda artefactos de despliegue simulado.
