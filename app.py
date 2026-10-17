@@ -1,14 +1,4 @@
-﻿"""
-app.py — Interfaz Streamlit del Agente GM Components
-=====================================================
-Interfaz principal del agente de análisis de compatibilidad de hardware.
-Permite seleccionar componentes, analizar compatibilidad y chatear con el agente.
-
-IL2.1 - Integra herramientas de consulta, escritura y razonamiento.
-IL2.2 - Visualiza memoria de corto y largo plazo.
-IL2.3 - Muestra el plan de ejecución del agente.
-IL2.4 - Documentado con docstrings y flujo claro.
-"""
+﻿"""Interfaz Streamlit para consulta y análisis de componentes de PC."""
 
 import os
 import sys
@@ -206,7 +196,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔧 Herramientas activas")
-    st.markdown("- ✅ RAG (FAISS + SentenceTransformers)")
+    st.markdown("- ✅ RAG (FAISS + FastEmbed (ONNX))")
     st.markdown("- ✅ LLM (Groq llama-3.3-70b)")
     st.markdown("- ✅ Web Search (SerpAPI)")
     st.markdown("- ✅ Memoria corto/largo plazo")
@@ -490,7 +480,7 @@ elif "Arquitectura" in pagina:
         componentes = [
             ("agent.py", "HardwareAgent", "Orquestador principal. Coordina herramientas, memoria y planificación. IL2.1, IL2.3"),
             ("services/llm.py", "analizar_con_ia()", "LLM Groq llama-3.3-70b-versatile. Razonamiento y síntesis. IL2.1"),
-            ("services/rag.py", "RAG", "FAISS + SentenceTransformers. Recuperación semántica del catálogo. IL2.1, IL2.4"),
+            ("services/rag.py", "RAG", "FAISS + FastEmbed (ONNX). Búsqueda semántica del catálogo. IL2.1, IL2.4"),
             ("services/web_search.py", "buscar_en_google()", "SerpAPI. Validación externa de componentes. IL2.1"),
             ("memory/memory_manager.py", "MemoryManager", "Memoria de corto y largo plazo (JSON). IL2.2, IL2.4"),
             ("app.py", "Streamlit UI", "Interfaz de usuario. Visualiza plan, resultado y memoria. IL2.4"),
@@ -552,7 +542,7 @@ elif "Arquitectura" in pagina:
 - Groq. (2024). *Groq API Documentation*. https://console.groq.com/docs
 - LangChain. (2024). *LangChain Documentation*. https://docs.langchain.com
 - Meta AI. (2024). *Llama 3: Open Foundation and Fine-Tuned Chat Models*. https://ai.meta.com/llama
-- Hugging Face. (2024). *Sentence Transformers Documentation*. https://www.sbert.net
+- Qdrant. *FastEmbed Documentation*. https://qdrant.github.io/fastembed/
 - Facebook Research. (2024). *FAISS: A Library for Efficient Similarity Search*. https://faiss.ai
 - SerpApi. (2024). *Google Search API Documentation*. https://serpapi.com/docs
 """)

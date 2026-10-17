@@ -1,36 +1,24 @@
+"""Embeddings semánticos con FastEmbed ONNX, sin PyTorch/transformers.
+
+Se inicializa bajo demanda para no descargar modelos al importar módulos.
 """
-utils/embeddings.py
-===================
-Utilidades para generación de embeddings de texto.
-Centraliza el modelo para evitar cargas múltiples.
-"""
+from functools import lru_cache
+import numpy as np
 
-from sentence_transformers import SentenceTransformer
-
-_model = SentenceTransformer("all-MiniLM-L6-v2")
+MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
 
-def embed_text(text: str):
-    """
-    Genera el embedding de un texto.
-
-    Args:
-        text: Texto a embeder.
-
-    Returns:
-        Vector numpy del embedding.
-    """
-    return _model.encode(text)
+@lru_cache(maxsize=1)
+def _get_model():
+    from fastembed import TextEmbedding
+    return TextEmbedding(model_name=MODEL)
 
 
 def embed_batch(texts: list[str]):
-    """
-    Genera embeddings para una lista de textos.
+    if not texts:
+        return np.empty((0, 384), dtype="float32")
+    return np.asarray(list(_get_model().embed(texts)), dtype="float32")
 
-    Args:
-        texts: Lista de textos.
 
-    Returns:
-        Array numpy de embeddings.
-    """
-    return _model.encode(texts, show_progress_bar=False)
+def embed_text(text: str):
+    return embed_batch([text])[0]

@@ -1,64 +1,88 @@
-## Estrategia de ramificación: GitFlow
+# GM Components
 
-Se optó por GitFlow como modelo de ramificación:
+Aplicación de análisis de compatibilidad de hardware desarrollada con Python y Streamlit. Consulta un catálogo de componentes y combina búsqueda semántica (FAISS), búsqueda web y un modelo de lenguaje de Groq. También guarda los análisis realizados para poder reutilizarlos.
 
-- **main**: código estable, listo para producción.
-- **develop**: rama de integración, concentra el trabajo ya revisado antes del release.
-- **feature/<nombre>**: nuevas funcionalidades, se crean desde `develop` y se integran hacia `develop` vía Pull Request.
-- **hotfix/<nombre>**: correcciones urgentes, se crean desde `main` y se integran hacia `main` y `develop`.
+## Estructura del proyecto
 
-## Convenciones de commits
+| Archivo o carpeta | Descripción |
+| --- | --- |
+| `app.py` | Interfaz Streamlit |
+| `agent.py` | Flujo principal de análisis |
+| `services/` | Consulta web, búsqueda semántica y Groq |
+| `memory/` | Historial y persistencia de análisis |
+| `observability/` | Registro de trazas y métricas |
+| `tests/` | Pruebas automatizadas |
+| `Dockerfile`, `docker-compose.yml` | Imagen y configuración del contenedor |
 
-Se utiliza el formato de Conventional Commits:
+## Ejecutar el proyecto
 
+Para ejecutarlo con Docker:
 
-| Tipo       | Uso                                              |
-|------------|---------------------------------------------------|
-| feat       | Nueva funcionalidad                               |
-| fix        | Corrección de errores                             |
-| docs       | Cambios en documentación                          |
-| ci         | Cambios en configuración de CI/CD                 |
-| refactor   | Cambios de código que no alteran comportamiento   |
+```bash
+docker compose config
+docker compose up -d --build
+docker compose ps
+```
 
-## Naming de ramas
+Abrir `http://localhost:8501`. El endpoint `http://localhost:8501/_stcore/health` permite comprobar que Streamlit está activo.
 
-| Prefijo    | Uso                                     | Ejemplo                              |
-|------------|------------------------------------------|----------------------------------------|
-| feature/   | Nueva funcionalidad                       | feature/observability-tracing          |
-| hotfix/    | Corrección urgente sobre producción       | hotfix/fix-requirements                |
-| develop    | Rama de integración (única, permanente)   | —                                       |
-| main       | Rama de producción (única, permanente)    | —                                       |
+Para detenerlo:
 
-## Flujo de merge
+```bash
+docker compose down
+```
 
-1. Las ramas `feature/*` se crean desde `develop` y se integran hacia `develop` mediante Pull Request.
-2. Las ramas `hotfix/*` se crean desde `main` y se integran hacia `main` y `develop`.
-3. Ningún cambio se sube directo a `main` o `develop`: todo pasa por Pull Request.
-4. El pipeline de GitHub Actions (`.github/workflows/ci.yml`) se ejecuta en cada push a `develop`/`main` y en cada Pull Request hacia esas ramas.
+Las funciones que consultan Groq y SerpAPI requieren claves válidas en las variables `GROQ_API_KEY` y `SERP_API_KEY`. El modelo de embeddings ONNX se descarga en el primer uso, por lo que puede requerirse conexión a internet.
 
-## Estrategia de revisión (Pull Requests)
+Para ejecutar las pruebas fuera de Docker:
 
-- Todo Pull Request debe tener al menos 1 revisor antes de aprobarse.
-- El PR debe incluir una descripción breve de qué cambia y por qué.
-- El revisor valida que el código cumple su propósito, los tests pasan (verificado automáticamente por GitHub Actions), y las convenciones de nombres y commits se respetan.
+```bash
+python -m pip install -r requirements.txt
+python -m pytest tests/ -v
+```
 
-## Pipeline de Integración Continua (CI)
+## CI y controles de seguridad
 
-El archivo `.github/workflows/ci.yml` automatiza:
+El workflow `.github/workflows/ci.yml` se ejecuta en GitHub Actions al abrir un pull request hacia `main` o `develop`, al enviar cambios a esas ramas y cuando se inicia manualmente.
 
-1. Descarga del código (checkout).
-2. Configuración del entorno Python 3.11.
-3. Instalación de dependencias (`pip install -r requirements.txt`).
-4. Ejecución de la batería de pruebas (`python -m pytest tests/`).
+Contiene tres trabajos:
+
+- **Pruebas automatizadas:** ejecuta PyTest.
+- **Snyk:** revisa las dependencias del contenedor y bloquea vulnerabilidades de severidad alta o crítica.
+- **Docker Build y Trivy:** valida Compose, construye la imagen, comprueba las dependencias del entorno y examina la imagen con Trivy.
+
+Para Snyk se necesita el secreto `SNYK_TOKEN` en **Settings → Secrets and variables → Actions**.
+
+El workflow no levanta un servidor permanente ni publica la aplicación. Para probar el servicio hay que ejecutarlo con Docker Compose y utilizar la interfaz. El contenedor utiliza un usuario sin privilegios; se construye en varias etapas y su entorno de ejecución no incluye `pip` ni otras herramientas de instalación que no necesita. Los embeddings se calculan con FastEmbed (ONNX) y el índice vectorial se administra con FAISS.
+
+Dependabot revisa periódicamente las dependencias y las acciones de GitHub. Las actualizaciones se integran después de revisar sus cambios y las pruebas.
+
+## Trabajo en Git
+
+Usamos GitFlow para separar el trabajo estable de las funciones en desarrollo.
+
+| Rama | Uso |
+| --- | --- |
+| `main` | Versión estable |
+| `develop` | Integración de cambios revisados |
+| `feature/*` | Funciones nuevas |
+| `hotfix/*` | Correcciones urgentes |
+
+Los cambios se revisan mediante pull requests. Como norma de trabajo, cada PR describe qué se modificó, requiere la revisión de otro integrante y debe aprobar las comprobaciones de GitHub Actions antes de integrarse.
+
+Los commits siguen una convención simple: `feat` para nuevas funciones, `fix` para correcciones, `docs` para documentación, `ci` para el pipeline y `refactor` para reorganización de código.
 
 ## Uso de Inteligencia Artificial
 
 Se utilizó Claude (Anthropic) como apoyo para resolver errores de configuración del pipeline de CI/CD, corregir dependencias en `requirements.txt`, y documentar las convenciones del proyecto. Las decisiones de diseño y las conclusiones individuales fueron elaboradas por los propios integrantes.
 
-
-##Reflexiones##
-[Nicolás Troncoso]
+## Reflexiones del equipo
+**Nicolás Troncoso**
 Al principio me costó entender GitFlow, sobre todo diferenciar main de develop y saber desde qué rama debía crear cada tipo de trabajo (feature o hotfix). Un momento que me ayudó a entenderlo de verdad fue cuando tuvimos que resolver un conflicto de merge en requirements.txt, donde dos cambios distintos (un hotfix mío y una actualización de mi compañero) chocaban en el mismo archivo — ahí entendí en la práctica por qué Git necesita que alguien decida manualmente qué versión final debe quedar. También aprendí lo importante que es revisar el código de otra persona antes de integrarlo: no es solo un trámite, sino una forma real de detectar errores o inconsistencias antes de que lleguen a producción.
 
-[Álvaro Eyzaguirre]
+**Álvaro Eyzaguirre**
 Durante el desarrollo del proyecto pude aprender y aplicar GitFlow para organizar el trabajo con mi compañero. Lo que más me gustó fue la forma en que se puede revisar y aprobar el código de otra persona antes de integrarlo, ya que permite tener un mayor control sobre los cambios realizados. Esta experiencia me ayudó a entender mejor cómo GitFlow facilita el trabajo colaborativo y la integración del código entre los integrantes del equipo.
+
+## Registros de pruebas
+
+Las ejecuciones y los resultados de seguridad quedan disponibles en la pestaña **Actions** del repositorio. El detalle técnico de la remediación de dependencias está en `docs/ep2_security_findings.md`.

@@ -1,11 +1,4 @@
-"""
-services/web_search.py
-======================
-Búsqueda web usando SerpAPI para validar existencia de componentes
-y obtener información actualizada de internet.
-
-IL2.1 - Herramienta de consulta externa integrada al agente.
-"""
+"""Consulta de resultados de búsqueda mediante SerpAPI."""
 
 import os
 import requests

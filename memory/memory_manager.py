@@ -1,14 +1,4 @@
-"""
-memory/memory_manager.py
-========================
-Sistema de memoria para el agente con dos niveles:
-
-- Memoria de corto plazo (SHORT): historial de conversación en sesión.
-- Memoria de largo plazo (LONG): análisis previos guardados en archivo JSON.
-
-IL2.2 - Configura procesos de memoria de contenido.
-IL2.4 - Recuperación de contexto semántico para continuidad de tareas.
-"""
+"""Historial de conversación y almacenamiento de análisis en JSON."""
 
 import json
 import os

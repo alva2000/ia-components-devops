@@ -1,21 +1,4 @@
-﻿"""
-agent.py
-========
-Agente principal de análisis de compatibilidad de hardware.
-
-Integra:
-  - Herramienta de consulta: RAG semántico sobre catálogo de productos.
-  - Herramienta de consulta: búsqueda web (SerpAPI).
-  - Herramienta de razonamiento: LLM (Groq llama-3.3-70b-versatile).
-  - Memoria de corto plazo: historial conversacional en sesión.
-  - Memoria de largo plazo: análisis persistidos en JSON.
-  - Planificación: ciclo Plan → Execute → Synthesize antes de responder.
-
-IL2.1 - Agente funcional con herramientas de consulta, escritura y razonamiento.
-IL2.2 - Memoria de corto y largo plazo.
-IL2.3 - Planificación y toma de decisiones adaptativa.
-IL2.4 - Documentado con docstrings y flujo claro.
-"""
+﻿"""Coordinación de catálogo, búsqueda RAG, consulta web y análisis de hardware."""
 
 import os
 import requests
@@ -118,7 +101,7 @@ class HardwareAgent:
         return cpu, gpu, ram, mb, case
 
     # ──────────────────────────────────────────
-    # PASO 3: Planificación (IL2.3)
+    # Planificación de consultas
     # ──────────────────────────────────────────
     def _planificar(self, cpu, gpu, ram, mb, case) -> dict:
         """
@@ -134,7 +117,7 @@ class HardwareAgent:
         Returns:
             Dict con el plan: {query, usar_rag, usar_web, pasos}.
 
-        IL2.3 - Planificación adaptativa según condiciones del entorno.
+
         """
         pasos = []
         query = ""
@@ -190,7 +173,7 @@ class HardwareAgent:
         Ejecuta el ciclo completo del agente: Plan -> Execute -> Synthesize.
 
         Ademas registra trazas, duraciones por paso, uso de cache y tamanos de
-        contexto para cumplir los requisitos de observabilidad de la Evaluacion 3.
+        contexto para facilitar el seguimiento de cada ejecución.
         """
         componentes_ids = {
             "cpu": cpu_id, "gpu": gpu_id, "ram": ram_id,
@@ -320,7 +303,7 @@ WEB (Validacion externa)
         except Exception as exc:
             trace.finish(ok=False, error=str(exc), metrics={"cache_hit": False})
             raise
-    # Chat con memoria de corto plazo (IL2.2)
+    # Chat con historial de conversación
     # ──────────────────────────────────────────
     def chat(self, mensaje: str) -> str:
         """
@@ -332,7 +315,7 @@ WEB (Validacion externa)
         Returns:
             Respuesta del agente.
 
-        IL2.2 - Memoria de corto plazo para continuidad conversacional.
+
         """
         historial = self.memory.obtener_historial()
         respuesta = chat_simple(mensaje, historial)

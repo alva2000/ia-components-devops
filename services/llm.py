@@ -1,11 +1,4 @@
-"""
-services/llm.py
-===============
-Servicio LLM principal usando Groq + llama-3.3-70b-versatile.
-Provee análisis de compatibilidad de hardware con razonamiento técnico.
-
-IL2.1 - Herramienta de razonamiento integrada en el agente.
-"""
+"""Consultas de análisis de hardware y chat mediante la API de Groq."""
 
 import os
 from groq import Groq
@@ -93,7 +86,7 @@ def chat_simple(mensaje: str, historial: list = None) -> str:
     Returns:
         Respuesta del modelo como string.
 
-    IL2.2 - Memoria de corto plazo mediante historial de mensajes.
+
     """
     messages = [
         {
