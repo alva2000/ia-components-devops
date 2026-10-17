@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip \
     && python -m pip uninstall -y setuptools wheel \
     && python -c "import streamlit, fastembed, faiss"
 
-FROM debian:trixie-slim
+FROM debian:trixie-slim AS prepared-runtime
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -29,6 +29,17 @@ COPY --from=builder /opt/venv /opt/venv
 COPY . .
 RUN useradd --create-home --shell /usr/sbin/nologin appuser \
     && chown -R appuser:appuser /app
+
+# Copiar el filesystem actualizado a una sola capa final. Evita que
+# metadatos obsoletos de capas históricas se reporten como paquetes activos.
+# Trivy sigue inspeccionando el sistema operativo y las librerías del resultado.
+FROM scratch
+COPY --from=prepared-runtime / /
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+WORKDIR /app
 USER appuser
 EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
